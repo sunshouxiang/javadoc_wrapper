@@ -1,4 +1,4 @@
-javadoc_wrapper.pl - A javadoc wrapper enabling multi-lingual document generation
+javadoc_wrapper.pl - A javadoc wrapper enabling multilingual document generation
 =========
 
 Introduction
