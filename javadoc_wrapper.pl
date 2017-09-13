@@ -45,10 +45,13 @@ for (; $i<=$#ARGV; $i++) {
 
 # preprocess files and save in temporary directory
 
+$list_file = "jdoc.lst" if ($list_file eq "");
+@lines = load_file_lines($list_file);
+exit(1) if ($#lines < 0);
+
 $tmp_dir = create_tmp_dir();
 
 @srcs = ();
-@lines = load_file_lines($list_file);
 foreach $f (@lines) {
 	if ($f =~ /^\s*(.+\.java)\s*$/) {
 		$f = get_slash_path($1);

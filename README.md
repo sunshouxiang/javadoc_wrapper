@@ -144,7 +144,7 @@ integer is refered to, its current value is returned and then increased by the s
 Examples
 
         /**
-         * @macro SECTION (1, 1)
+         * @int SECTION (1, 1)
          */
 
 ### Macro subsitution
@@ -215,13 +215,15 @@ jdoc.pl assumes a fixed-name "jdoc.lst" of `list_file` and set charset/encoding 
 
 Command line syntax:
 
-`jdoc.pl <locale> [javadoc options]`
+`jdoc.pl [locale1[, locale2, ...]] [javadoc_options]`
 
 Examples
 
         ./jdoc.pl -locale en_US
         ./jdoc.pl zh_CN -locale zh_CN
+		./jdoc.pl en_US zh_CN 
 
 Version
 ----
 1.0 - Sep 2017
+
