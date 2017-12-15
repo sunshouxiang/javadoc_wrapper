@@ -221,7 +221,7 @@ Examples
 
         ./jdoc.pl -locale en_US
         ./jdoc.pl zh_CN -locale zh_CN
-		./jdoc.pl en_US zh_CN 
+        ./jdoc.pl en_US zh_CN 
 
 Version
 ----
