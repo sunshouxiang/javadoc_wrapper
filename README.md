@@ -4,7 +4,7 @@ javadoc_wrapper.pl - A javadoc wrapper enabling multilingual document generation
 Introduction
 ----
 
-javadoc_wrapper.pl opens Java files specified in a list file, filters theirs lines and
+javadoc_wrapper.pl opens Java files specified in a list file, filters their lines and
 save temporary files to a temporary directory, and calls javadoc to process those
 temporary files.
 
