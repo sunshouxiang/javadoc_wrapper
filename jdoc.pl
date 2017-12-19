@@ -41,7 +41,7 @@ foreach $lcl (@locales) {
 
 sub usage
 {
-	die "Usage: jdoc.pl [locale1[, locale2, ...]] [javadoc_options]\n";
+	die "Usage: jdoc.pl [-test] [locale1[, locale2, ...]] [javadoc_options]\n";
 }
 
 sub trans_locale
