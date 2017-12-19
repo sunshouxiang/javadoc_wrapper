@@ -94,7 +94,7 @@ exit(0);
 
 sub usage
 {
-	die "Usage: javadoc_wrapper.pl [-locale <locale>] <list_file> [-- [javadoc options]]\n";
+	die "Usage: javadoc_wrapper.pl [-test] [-locale <locale>] <list_file> [-- [javadoc options]]\n";
 }
 
 sub init_context
