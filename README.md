@@ -230,5 +230,5 @@ Examples
 
 Version
 ----
-1.0 - Sep 2017
+1.0 - Sep 2017  
 1.1 - Dec 2017
