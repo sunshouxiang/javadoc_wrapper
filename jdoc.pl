@@ -2,14 +2,21 @@
 
 @locales = ();
 
+$wrapper_args = "";
 for ($i=0; $i<=$#ARGV; $i++) {
-	if ($ARGV[$i] =~ /^\-/) {
+	if ($ARGV[$i] eq "--") {
+		$i++;
 		last;
+	}
+	if ($ARGV[$i] eq "-test") {
+		$wrapper_args .= " -test";
+		next;
 	}
 	usage() if ($ARGV[$i] !~ /^\w+$/);
 	push @locales, $ARGV[$i];
 }
 
+$javadoc_args = "";
 $locale_set = 0;
 for (; $i<=$#ARGV; $i++) {
 	if ($ARGV[$i] =~ /\s/) {
@@ -24,7 +31,7 @@ push @locales, "default" if ($#locales < 0);
 
 
 foreach $lcl (@locales) {
-	$cmd = "perl javadoc_wrapper.pl -locale $lcl jdoc.lst --";
+	$cmd = "perl javadoc_wrapper.pl $wrapper_args -locale $lcl jdoc.lst --";
 	$cmd .= " -locale " . trans_locale($lcl) if (!$locale_set);
 	$cmd .= $javadoc_args;
 	$cmd .= " -noqualifier \"java.*\" -protected -nodeprecated -encoding utf8 -charset utf8 -d Document/jdoc/$lcl";

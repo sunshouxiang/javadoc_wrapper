@@ -5,14 +5,15 @@ use File::Path qw(make_path remove_tree);
 use File::Copy;
 
 $opt_doc_locale = "default";
-$list_file = "";
+$opt_list_file = "";
+$opt_test = 0;
 
 # parse command line
 
 for ($i=0; $i<=$#ARGV; $i++) {
 	# end of wrapper options
 	if ($ARGV[$i] eq "--") {
-		usage() if ($list_file eq "");
+		usage() if ($opt_list_file eq "");
 		$i++;
 		last;
 	}
@@ -23,9 +24,14 @@ for ($i=0; $i<=$#ARGV; $i++) {
 		usage() if ($opt_doc_locale !~ /^\w+$/);
 		next;
 	}
+	# test mode
+	if ($ARGV[$i] eq "-test") {
+		$opt_test = 1;
+		next;
+	}
 	# list file (java file list)
-	if ($ARGV[$i] !~ /^\-/ && $ARGV[$i] ne "" && $list_file eq "") {
-		$list_file = $ARGV[$i];
+	if ($ARGV[$i] !~ /^\-/ && $ARGV[$i] ne "" && $opt_list_file eq "") {
+		$opt_list_file = $ARGV[$i];
 		next;
 	}
 	# unknown options
@@ -45,8 +51,8 @@ for (; $i<=$#ARGV; $i++) {
 
 # preprocess files and save in temporary directory
 
-$list_file = "jdoc.lst" if ($list_file eq "");
-@lines = load_file_lines($list_file);
+$opt_list_file = "jdoc.lst" if ($opt_list_file eq "");
+@lines = load_file_lines($opt_list_file);
 exit(1) if ($#lines < 0);
 
 $tmp_dir = create_tmp_dir();
@@ -73,13 +79,16 @@ if ($#srcs < 0) {
 
 # run javadoc
 
-save_file_lines("$tmp_dir.lst", \@srcs, "\n");
-system("javadoc$javadoc_args \@$tmp_dir.lst");
-unlink("$tmp_dir.lst");
-
-# delete temporary directory
-
-remove_tree($tmp_dir);
+if (!$opt_test) {
+	save_file_lines("$tmp_dir.lst", \@srcs, "\n");
+	system("javadoc$javadoc_args \@$tmp_dir.lst");
+	unlink("$tmp_dir.lst");
+	# delete temporary directory
+	remove_tree($tmp_dir);
+} else {
+	unlink("$tmp_dir.lst");
+	print "Tempory directory: $tmp_dir\n";
+}
 
 exit(0);
 
@@ -100,6 +109,7 @@ sub init_context
 	@doc_repeat_lines = ();			# buffered lines for multi-round expanding
 	$doc_repeat_collected = 0;		# whether all multi-round lines are collected
 	$doc_repeat = 0;				# repeat
+	$doc_macro_level = 0;			# recursive
 }
 
 sub parse_java_file
@@ -359,16 +369,38 @@ sub expand_line
 	$doc_error = 0;												# reset error state
 	while ($doc_error == 0 && $text =~ /^(.*?)\$(.)?(.*)/) {	# non-greedy
 		$result .= $1;
-		if ($2 eq "{") {
-			($sub_result, $text) = expand_macro($3);			# found macro
-			$result .= $sub_result;
-		} else {
-			$result .= get_escaped_char($2);					# '$' followed by no characters will be removed
-			$text = $3;
-		}
-	} 
+		($sub_result, $text) = expand_dollar_sequence($2, $3);
+		$result .= $sub_result;
+	}
 	$result .= $text;
 	return $doc_error == 0 ? $result : $org_text;
+}
+
+sub expand_dollar_sequence
+{
+	my $c0 = shift;
+	my $text = shift;
+
+	if ($c0 eq "{") {
+		return expand_macro($text);								# found macro
+	} elsif ($c0 =~ /^\w/) {
+		return expand_bare_macro($c0 . $text);					# found bare macro
+	} else {
+		return (get_escaped_char($c0), $text);					# '$' followed by no characters will be removed
+	} 
+}
+
+sub expand_bare_macro
+{
+	my $text = shift;
+	my $word;
+	my $result;
+
+	$text =~ /^(\w+)(.*)/;
+	$word = $1;
+	$text = $2;
+	$result = lookup_macro($word, 0);
+	return ($result, $text);
 }
 
 sub expand_macro
@@ -383,6 +415,8 @@ sub expand_macro
 	my @list;
 
 	my $result = "";
+
+	$doc_macro_level++;
 
 	while ($doc_error == 0 && $text ne "") {
 
@@ -400,11 +434,17 @@ sub expand_macro
 		}
 
 		# inline locales
-		if ($text =~ /^\s*(\w+(\s*,\s*\w+)*)?\s*:(.*)/) {
-			$text = $3;
-			@list = split_locale_list($1, 1);
+		if ($text =~ /^\s*((\w+(\s*,\s*\w+)*)?|\*)\s*:(.*)/) {
+			$text = $4;
+			my $matched = 0;
+			if ($1 eq "*") {
+				$matched = 1;
+			} else {
+				@list = split_locale_list($1, 1);
+				$matched = match_doc_locale(\@list);
+			}
 			($s, $text) = expand_macro_text($text);
-			if (match_doc_locale(\@list)) {
+			if ($matched) {
 				$result .= $s;
 			}
 			next;
@@ -444,6 +484,16 @@ sub expand_macro
 
 		# unexpected
 		$doc_error = 3;
+	}
+
+	$doc_macro_level--;
+
+	if ($doc_error == 0) {
+		if ($text =~ /^=(\w+)(.*)/) {
+			$back_ref = $1;
+			$text = $2;
+			$doc_macros{$back_ref} = { 'default' => $result };
+		}
 	}
 
 	return ($result, $text);
@@ -534,13 +584,8 @@ sub expand_macro_arg
 			return ($result, $text);
 		} else {
 			$result .= $1;
-			if ($3 ne "{") {
-				$result .= get_escaped_char($3);
-				$text = $4;
-			} else {
-				($sub_result, $text) = expand_macro($4);
-				$result .= $sub_result;
-			}
+			($sub_result, $text) = expand_dollar_sequence($3, $4);
+			$result .= $sub_result;
 		}
 	}
 	$result .= $text;
@@ -575,13 +620,8 @@ sub expand_macro_text
 			$text = $2 . $4;			# keep '}' for caller
 			return ($result, $text);
 		}
-		if ($3 ne "{") {
-			$result .= get_escaped_char($3);
-			$text = $4;
-		} else {
-			($sub_result, $text) = expand_macro($4);
-			$result .= $sub_result;
-		}
+		($sub_result, $text) = expand_dollar_sequence($3, $4);
+		$result .= $sub_result;
 	}
 	$result .= $text;
 

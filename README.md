@@ -11,7 +11,7 @@ temporary files.
 Command line syntax
 ----
 
-`javadoc_wrapper.pl [-locale <locale>] <list_file> [-- [javadoc options]]`
+`javadoc_wrapper.pl [-test] [-locale <locale>] <list_file> [-- [javadoc options]]`
 
 Examples
 
@@ -151,12 +151,16 @@ Examples
 
 Macros are refered to in format
 
-`${macro_referer_list}`
+`$macro_name`
 
-`${macro_referer# [arg1, [arg2, ...]]}`
+`${macro_referer_list}[=back_ref]`
+
+`${macro_referer# [arg1, [arg2, ...]]}[=back_ref]`
 
 where macro_referer_list contains one or more referer separated by comma, and arg1, arg2 ... are optional arguments.
-Arguments are separated by comma, so real ',', '$' and '}' must be escaped with '$'. Macro can be used recursively.
+Arguments are separated by comma, so real ',', '$' and '}' must be escaped with '$'. 'back_ref' means the expanded
+text (after 'number' times) should be added to macro dictionary with name being 'back_ref' and locale being
+"default". Macro can be used recursively.
 
 A macro_referer is in format
 
@@ -176,6 +180,7 @@ As a special case, if the braces after '$' enclose only white spaces, the white 
 Examples
 
         /**
+         * $FH<br>
          * Table ${SECTION=TABLE}<br>
          * <table>
          * <tr><th>Characters</th><th>Planet</th></tr>
@@ -215,7 +220,7 @@ jdoc.pl assumes a fixed-name "jdoc.lst" of `list_file` and set charset/encoding 
 
 Command line syntax:
 
-`jdoc.pl [locale1[, locale2, ...]] [javadoc_options]`
+`jdoc.pl [-test] [locale1[, locale2, ...]] [javadoc_options]`
 
 Examples
 
@@ -226,4 +231,4 @@ Examples
 Version
 ----
 1.0 - Sep 2017
-
+1.1 - Dec 2017
