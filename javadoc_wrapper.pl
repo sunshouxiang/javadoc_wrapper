@@ -186,9 +186,9 @@ sub parse_java_line
 	} elsif ($text =~ /^[\s\*]*\@locale(\s+\w+(\s*,\s*\w+)*)?\s*$/) {	# setting current comment locales
 		@doc_cmt_locale_list = split_locale_list($1, 0);				#		the list
 		$doc_out_ok = match_doc_locale(\@doc_cmt_locale_list);			#		match
-	} elsif ($text =~ /^[\s\*]*\@macro\s+(\w+)(.*)/) {					# macro
+	} elsif ($text =~ /^[\s\*]*\@macro\s+([A-Za-z_]\w*)(.*)/) {			# macro
 		parse_macro($1, $2);											#		parse
-	} elsif ($text =~ /^[\s\*]*\@repeat\s+(\w+)\s*$/) {					# begin repeat
+	} elsif ($text =~ /^[\s\*]*\@repeat\s+(\d+)\s*$/) {					# begin repeat
 		if ($1 > 1 && $doc_repeat == 0) {
 			@doc_repeat_lines = ();
 			$doc_repeat_collected= 0;
@@ -198,7 +198,7 @@ sub parse_java_line
 		if ($doc_repeat > 1) {
 			$doc_repeat_collected = 1;
 		}
-	} elsif ($text =~ /^[\s\*]*\@int\s+(\w+)(.*)/) {					# auto-increasing integer
+	} elsif ($text =~ /^[\s\*]*\@int\s+([A-Za-z_]\w*)(.*)/) {			# auto-increasing integer
 		parse_int($1, $2);												#		parse
 	} elsif ($text =~ /^[\s\*]*\@(locale|macro|int|repeat)(\W*)?/) {	# ignore unmatched tag lines
 		#print "IGNORED: $text\n";
@@ -246,7 +246,7 @@ sub parse_macro
 		my @locales = ();					# array of locale lists
 		my @meanings = ();					# array of meanings
 		my $delim = "";						# delimiter: , or )
-		while ($text =~ /^\s*(\w+(\s*,\s*\w+)*)?\s*:((\$.|[^,\)])*)([,\)])(.*)/) {
+		while ($text =~ /^\s*([A-Za-z_]\w*(\s*,\s*[A-Za-z_]\w*)*)?\s*:((\$.|[^,\)])*)([,\)])(.*)/) {
 			my $l = $1;						# locale
 			my $m = $3;						# meaning
 			$delim = $5;					# , or )
@@ -383,7 +383,7 @@ sub expand_dollar_sequence
 
 	if ($c0 eq "{") {
 		return expand_macro($text);								# found macro
-	} elsif ($c0 =~ /^\w/) {
+	} elsif ($c0 =~ /^[A-Za-z_]/) {
 		return expand_bare_macro($c0 . $text);					# found bare macro
 	} else {
 		return (get_escaped_char($c0), $text);					# '$' followed by no characters will be removed
@@ -396,7 +396,7 @@ sub expand_bare_macro
 	my $word;
 	my $result;
 
-	$text =~ /^(\w+)(.*)/;
+	$text =~ /^([A-Za-z_]\w*)(.*)/;
 	$word = $1;
 	$text = $2;
 	$result = lookup_macro($word, 0);
@@ -434,7 +434,7 @@ sub expand_macro
 		}
 
 		# inline locales
-		if ($text =~ /^\s*((\w+(\s*,\s*\w+)*)?|\*)\s*:(.*)/) {
+		if ($text =~ /^\s*(([A-Za-z_]\w*(\s*,\s*[A-Za-z_]\w*)*)?|\*)\s*:(.*)/) {
 			$text = $4;
 			my $matched = 0;
 			if ($1 eq "*") {
@@ -451,11 +451,11 @@ sub expand_macro
 		}
 
 		# simple macros
-		if ($text =~ /^\s*(\w+(\s*\*\s*\d*)?(\s*=\s*\w+)?(\s*,\s*\w+(\s*\*\s*\d*)?(\s*=\s*\w+)?)*)\s*\}(.*)/) {
+		if ($text =~ /^\s*([A-Za-z_]\w*(\s*\*\s*\d*)?(\s*=\s*[A-Za-z_]\w*)?(\s*,\s*[A-Za-z_]\w*(\s*\*\s*\d*)?(\s*=\s*[A-Za-z_]\w*)?)*)\s*\}(.*)/) {
 			$text = $7;
 			@list = split_list($1);
 			foreach $s (@list) {
-				$s =~ /^(\w+)(\*(\d*))?(=(\w+))?/;
+				$s =~ /^([A-Za-z_]\w*)(\*(\d*))?(=([A-Za-z_]\w*))?/;
 				$word = $1;
 				$repeat = $2;
 				$repeat_count = $3;
@@ -468,7 +468,7 @@ sub expand_macro
 		}
 
 		# macro with parameters
-		if ($text =~ /^\s*(\w+)(\s*\*\s*(\d+))?(\s*=\s*(\w+))?\s*#(.*)/) {
+		if ($text =~ /^\s*([A-Za-z_]\w*)(\s*\*\s*(\d+))?(\s*=\s*([A-Za-z_]\w*))?\s*#(.*)/) {
 			$text = $6;
 			$word = $1;
 			$repeat = $2;
@@ -489,7 +489,7 @@ sub expand_macro
 	$doc_macro_level--;
 
 	if ($doc_error == 0) {
-		if ($text =~ /^=(\w+)(.*)/) {
+		if ($text =~ /^=([A-Za-z_]\w*)(.*)/) {
 			$back_ref = $1;
 			$text = $2;
 			$doc_macros{$back_ref} = { 'default' => $result };
